@@ -1,0 +1,2 @@
+#!/bin/sh
+clang -framework OpenCL info.c -o info.tsk
