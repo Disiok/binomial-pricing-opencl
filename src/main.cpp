@@ -1,14 +1,24 @@
 // NOTE(disiok): Supposedly use cl::vector instead of std::vector
 // It is, however, causing an error right now
 // #define __NO_STD_VECTOR 
-#define __CL_ENABLE_EXCEPTIONS
+// #define __CL_ENABLE_EXCEPTIONS
 #include <OpenCL/cl.hpp>
 #include <iostream>
+#include <fstream>
 #include <string>
+
+struct OptionSpec {
+    float stockPrice;
+    float strikePrice;
+    float yearsToMaturity;
+    float volatility;
+    float riskFreeRate;
+    int numSteps;   
+};
 
 int main() {
     std::cout << "[INFO] Starting main function" << std::endl;
-    try {
+    //try {
         // Retrieve platforms
         std::vector<cl::Platform> platforms;
         cl::Platform::get(&platforms);
@@ -55,11 +65,11 @@ int main() {
         cl::Context context({defaultDevice});
 
         // Define kernel code
+        std::ifstream ifs("kernel.cl");
+        std::string kernelCode(
+                (std::istreambuf_iterator<char>(ifs)),
+                (std::istreambuf_iterator<char>()));
         cl::Program::Sources sources;
-        std::string kernelCode =
-            "void kernel simple_add(global const int* a, global const int* b, global int* c) {"
-            "   c[get_global_id(0)] = a[get_global_id(0)] + b[get_global_id(0)];"
-            "}";
         sources.push_back({kernelCode.c_str(), kernelCode.length()});
 
         // Build kernel code
@@ -118,7 +128,7 @@ int main() {
             std::cout   << c[i] << " ";
         }
         std::cout   << std::endl;
-    } catch (cl::Error error) {
-        std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
-    }
+    //} catch (cl::Error error) {
+    //    std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
+    //}
 }

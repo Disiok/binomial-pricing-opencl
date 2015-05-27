@@ -1,8 +1,8 @@
-kernel void 
+__kernel void 
 simple_add(
-           global const int* a, 
-           global const int* b, 
-           global int* c) 
+           __constant const int* a, 
+           __constant const int* b, 
+           __global int* c) 
 {
    c[get_global_id(0)] = a[get_global_id(0)] + b[get_global_id(0)];
 }
