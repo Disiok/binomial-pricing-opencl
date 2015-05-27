@@ -6,7 +6,7 @@ init(
      const float volatility,
      const float riskFreeRate,
      const int numSteps,
-     __global const int* index,
+     __constant const int* index,
      __global float* valueAtExpiry
      )
 {
@@ -23,7 +23,7 @@ iterate(
         const float upWeight,
         const float downWeight,
         const float discountFactor,
-        __global const float* optionValueIn,
+        __constant const float* optionValueIn,
         __global float* optionValueOut
         )
 {
