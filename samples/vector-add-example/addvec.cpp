@@ -4,6 +4,7 @@
 #define __CL_ENABLE_EXCEPTIONS
 #include <OpenCL/cl.hpp>
 #include <iostream>
+#include <fstream>
 #include <string>
 
 int main() {
@@ -56,10 +57,10 @@ int main() {
 
         // Define kernel code
         cl::Program::Sources sources;
-        std::string kernelCode =
-            "void kernel simple_add(global const int* a, global const int* b, global int* c) {"
-            "   c[get_global_id(0)] = a[get_global_id(0)] + b[get_global_id(0)];"
-            "}";
+        std::ifstream ifs("addvec.cl");
+        std::string kernelCode(
+                (std::istreambuf_iterator<char>(ifs)),
+                (std::istreambuf_iterator<char>()));
         sources.push_back({kernelCode.c_str(), kernelCode.length()});
 
         // Build kernel code

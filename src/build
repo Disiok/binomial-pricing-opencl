@@ -1,2 +1,2 @@
 #!/bin/sh
-clang++ -framework OpenCL -std=c++11 addvec.cpp -o addvec.tsk
+clang++ -framework OpenCL -std=c++11 main.cpp -o main.tsk
