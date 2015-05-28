@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 
 struct OptionSpec {
     float stockPrice;
@@ -14,7 +15,22 @@ struct OptionSpec {
     float volatility;
     float riskFreeRate;
     int numSteps;   
+
+    friend std::ostream& operator<<(std::ostream& os, const OptionSpec& other);
 };
+
+std::ostream& operator<<(std::ostream& os, const OptionSpec& other) {
+    os << "Option Pricing Specification" << std::endl;
+    os << "------------------------------" << std::endl;
+    os << "Stock Price: " << other.stockPrice << std::endl;
+    os << "Strike Price: " << other.strikePrice << std::endl;
+    os << "Years to Maturity: " << other.yearsToMaturity << std::endl;
+    os << "Volatility: " << other.volatility << std::endl;
+    os << "Risk Free Rate: " << other.riskFreeRate << std::endl;
+    os << "Number of Steps: " << other.numSteps << std::endl; 
+    os << "------------------------------" << std::endl;
+    return os;
+}
 
 int main() {
     std::cout << "[INFO] Starting main function" << std::endl;
@@ -83,49 +99,59 @@ int main() {
             std::cout   << "[INFO] Successfully built kernel program" 
                         << std::endl;
         }
+        
+        // Hardcode option spec for testing
+        OptionSpec optionSpec = {50, 50, 1, 0.5, 0.05, 100}; 
+        std::vector<int> v;
+        for (int i = 0; i < optionSpec.numSteps; i++) {
+            v.push_back(i);
+        }
+
+        std::cout << "[INFO] " << optionSpec;
 
         // Create buffers on the devices
-        cl::Buffer bufferA(context, CL_MEM_READ_WRITE, sizeof(int) * 10);
-        cl::Buffer bufferB(context, CL_MEM_READ_WRITE, sizeof(int) * 10);
-        cl::Buffer bufferC(context, CL_MEM_READ_WRITE, sizeof(int) * 10);
+        cl::Buffer indexBuffer(context, 
+                               CL_MEM_READ_WRITE, 
+                               sizeof(int) * optionSpec.numSteps,
+                               v.data());
 
-        // Hardcode some arrays for testing
-        int a[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        int b[] = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+        cl::Buffer valueBuffer(context, 
+                               CL_MEM_READ_WRITE,
+                               sizeof(float) * optionSpec.numSteps);
 
         // Create qeueue to push commands for the devices
         cl::CommandQueue queue(context, defaultDevice);
         
-        // Write data to the device
-        queue.enqueueWriteBuffer(bufferA, CL_TRUE, 0, sizeof(int) * 10, a);
-        queue.enqueueWriteBuffer(bufferB, CL_TRUE, 0, sizeof(int) * 10, b);
-        
-        //  NOTE(disiok): KernelFunctor is removed from the API in v1.2
-        //  cl::KernelFunctor simple_add(
-        //         cl::Kernel(program, "simple_add"),
-        //         queue,
-        //         cl::NullRrange,
-        //         cl::NDRange(10),
-        //         cl::NullRange);
-        
         // Run kernel with functor
-        cl::Kernel kernel = cl::Kernel(program, "simple_add");
-        kernel.setArg(0, bufferA);
-        kernel.setArg(1, bufferB);
-        kernel.setArg(2, bufferC);
-        queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(10), cl::NullRange);
+        cl::Kernel kernel = cl::Kernel(program, "init");
+        kernel.setArg(0, optionSpec.stockPrice);
+        kernel.setArg(1, optionSpec.strikePrice);
+        kernel.setArg(2, optionSpec.yearsToMaturity);
+        kernel.setArg(3, optionSpec.volatility);
+        kernel.setArg(4, optionSpec.riskFreeRate);
+        kernel.setArg(5, optionSpec.numSteps);
+        kernel.setArg(6, indexBuffer);
+        kernel.setArg(7, valueBuffer);
+        queue.enqueueNDRangeKernel(kernel, 
+                                  cl::NullRange, 
+                                  cl::NDRange(optionSpec.numSteps), 
+                                  cl::NullRange);
         queue.finish();
     
         // Read results
-        int c[10];
-        queue.enqueueReadBuffer(bufferC, CL_TRUE, 0, sizeof(int) * 10, c);
+        float* values = new float[optionSpec.numSteps];
+        queue.enqueueReadBuffer(valueBuffer, 
+                                CL_TRUE, 
+                                0, 
+                                sizeof(float) * optionSpec.numSteps, 
+                                values);
 
         // Print results
         std::cout   << "The result is: "
                     << std::endl;
 
         for (int i = 0; i < 10; i ++) {
-            std::cout   << c[i] << " ";
+            std::cout   << values[i] << " ";
         }
         std::cout   << std::endl;
     //} catch (cl::Error error) {
