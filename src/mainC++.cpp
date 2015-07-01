@@ -29,8 +29,8 @@ float priceLattice(OptionSpec& optionSpec) {
     
     for (int i = optionSpec.numSteps - 1; i >= 0; --i) {
         for (int j = 0; j < i; j++) {
-            valueAtExpiry[i] = (downWeight * valueAtExpiry[i] +
-                                upWeight * valueAtExpiry[i + 1]) 
+            valueAtExpiry[j] = (downWeight * valueAtExpiry[j] +
+                                upWeight * valueAtExpiry[j + 1]) 
                                 / discountFactor; 
         }    
     }
@@ -39,10 +39,9 @@ float priceLattice(OptionSpec& optionSpec) {
 }
 int main() {
     std::cout << "[INFO] Starting main function" << std::endl;
-    OptionSpec optionSpec = {-1, 100, 100, 1, 0.3, 0.02, 500};
+    OptionSpec optionSpec = {-1, 100, 100, 1.0, 0.3, 0.02, 5000};
     float price = priceLattice(optionSpec);
     std::cout << "Final price is: " << price << std::endl;
-    
 }
 
 
