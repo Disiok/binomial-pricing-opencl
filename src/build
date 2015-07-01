@@ -1,0 +1,2 @@
+#!/bin/sh
+clang++ -framework OpenCL -std=c++11 main.cpp option_spec.cpp serial_pricer.cpp -o main.tsk
