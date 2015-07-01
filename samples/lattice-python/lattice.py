@@ -8,6 +8,7 @@ r = 0.02                    # Interest
 X = 100                     # Strike 
 n = 500                     # Iterations
 optionType = -1             # Type of option: 1 for call, -1 for put
+isAmerican = True
 
 # ---------------------------Derived-------------------------------------------
 dt = t / n                  # Time step
@@ -37,5 +38,7 @@ for i in range(n + 1):
 for j in range(n - 1, -1, -1):
     for i in range(j + 1):
         V[i] = (Pd * V[i] + Pu * V[i + 1]) / disc
-
+        if isAmerican:
+            Si = S0 * u ** i * d ** (j - i)
+            V[i] = max(V[i], max(0, optionType * (Si - X))) 
 print V[0]

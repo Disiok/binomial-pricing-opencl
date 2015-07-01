@@ -13,6 +13,7 @@ struct OptionSpec {
     float volatility;
     float riskFreeRate;
     int numSteps;   
+    bool isAmerican;
 };
 
 std::ostream& operator<<(std::ostream& os, const OptionSpec& other) {
