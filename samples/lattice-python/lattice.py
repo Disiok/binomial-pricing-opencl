@@ -1,13 +1,13 @@
 import math
 
 # Given
-S0 = 50                     # Stock price  
-t = 5.0 / 12.0              # Time  
-v = 0.4                     # Volatility 
-r = 0.1                     # Interest
-X = 50                      # Strike 
-n = 100                     # Iterations
-optionType = -1              # Type of option: 1 for call, -1 for put
+S0 = 100                    # Stock price  
+t = 1.0                     # Time  
+v = 0.3                     # Volatility 
+r = 0.02                    # Interest
+X = 100                     # Strike 
+n = 500                     # Iterations
+optionType = -1             # Type of option: 1 for call, -1 for put
 
 # ---------------------------Derived-------------------------------------------
 dt = t / n                  # Time step
