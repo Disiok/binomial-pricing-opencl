@@ -1,5 +1,6 @@
 #ifndef __OPTION_SPEC_H__
 #define __OPTION_SPEC_H__
+#include <iostream>
 struct OptionSpec {
     /**
      * Type of option:
@@ -15,4 +16,5 @@ struct OptionSpec {
     int numSteps;   
     bool isAmerican;
 };
+std::ostream& operator<<(std::ostream& out, const OptionSpec& other);
 #endif

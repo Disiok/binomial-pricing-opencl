@@ -1,2 +1,17 @@
 #!/bin/sh
-clang++ -framework OpenCL -std=c++11 main.cpp option_spec.cpp serial_pricer.cpp -o main.tsk
+
+SOURCES="
+main.cpp
+option_spec.cpp
+serial_pricer.cpp
+opencl_pricer.cpp"
+
+FRAMEWORK="-framework OPENCL"
+
+TARGET="-o main.tsk"
+
+CXX="clang++"
+
+VERSION="-std=c++11"
+
+$CXX $FRAMEWORK $VERSION $SOURCES $TARGET

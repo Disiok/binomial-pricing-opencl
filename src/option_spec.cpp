@@ -4,6 +4,8 @@
 std::ostream& operator<<(std::ostream& os, const OptionSpec& other) {
     os << "Option Pricing Specification" << std::endl;
     os << "------------------------------" << std::endl;
+    os << "Type: " << (other.isAmerican ? "American" : "European")
+       << " " << (other.type == 1 ? "Call" : "Put") << std::endl;
     os << "Stock Price: " << other.stockPrice << std::endl;
     os << "Strike Price: " << other.strikePrice << std::endl;
     os << "Years to Maturity: " << other.yearsToMaturity << std::endl;

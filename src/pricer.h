@@ -15,4 +15,10 @@ class SerialPricer: public LatticePricer {
 public:
     virtual double price(OptionSpec& optionSpec);
 };
+
+class OpenCLPricer: public LatticePricer {
+public:
+    OpenCLPricer();
+    virtual double price(OptionSpec& optionSpec);
+};
 #endif
