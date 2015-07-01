@@ -47,6 +47,9 @@ OpenCLPricer::OpenCLPricer() {
     defaultDevice = &(*devices)[1];
     std::cout   << "[INFO] Using device: " 
                 << defaultDevice->getInfo<CL_DEVICE_NAME>() 
+                << " (with max work item sizes of "
+                << defaultDevice->getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>()[0]
+                << ")"
                 << std::endl;
 
     // Create context
