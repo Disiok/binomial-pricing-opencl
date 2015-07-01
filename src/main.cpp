@@ -7,8 +7,11 @@ int main() {
     // Construct test option specification
     OptionSpec optionSpec = {1, 100, 100, 1.0, 0.3, 0.02, 500, false};
     std::cout << optionSpec;
-    OptionPricer* pricer = new OpenCLPricer();
-    double optionValue = pricer->price(optionSpec);
-    std::cout << "The value of the option is: " << optionValue << std::endl;
+    OptionPricer* openclPricer = new OpenCLPricer();
+    OptionPricer* serialPricer = new SerialPricer(); 
+    double benchmarkPrice = serialPricer->price(optionSpec);
+    double openclPrice = openclPricer->price(optionSpec); 
+    std::cout << "The benchmark value of the option is: " << benchmarkPrice << std::endl;
+    std::cout << "The opencl value of the option is: " << openclPrice << std::endl; 
     std::cout << "[INFO] Terminating tester main function." << std::endl;
 }
