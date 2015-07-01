@@ -1,3 +1,2 @@
 #!/bin/sh
 clang++ -framework OpenCL -std=c++11 mainOpenCL.cpp -o mainOpenCL.tsk
-clang++ -framework OpenCL -std=c++11 mainC++.cpp -o mainC++.tsk
