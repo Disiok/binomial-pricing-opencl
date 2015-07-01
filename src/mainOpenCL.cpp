@@ -7,30 +7,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
-
-struct OptionSpec {
-    float stockPrice;
-    float strikePrice;
-    float yearsToMaturity;
-    float volatility;
-    float riskFreeRate;
-    int numSteps;   
-
-    friend std::ostream& operator<<(std::ostream& os, const OptionSpec& other);
-};
-
-std::ostream& operator<<(std::ostream& os, const OptionSpec& other) {
-    os << "Option Pricing Specification" << std::endl;
-    os << "------------------------------" << std::endl;
-    os << "Stock Price: " << other.stockPrice << std::endl;
-    os << "Strike Price: " << other.strikePrice << std::endl;
-    os << "Years to Maturity: " << other.yearsToMaturity << std::endl;
-    os << "Volatility: " << other.volatility << std::endl;
-    os << "Risk Free Rate: " << other.riskFreeRate << std::endl;
-    os << "Number of Steps: " << other.numSteps << std::endl; 
-    os << "------------------------------" << std::endl;
-    return os;
-}
+#include "option_spec.h"
 
 int main() {
     std::cout << "[INFO] Starting main function" << std::endl;
@@ -101,7 +78,7 @@ int main() {
         }
         
         // Hardcode option spec for testing
-        OptionSpec optionSpec = {50, 50, 1, 0.5, 0.05, 100}; 
+        OptionSpec optionSpec = {0, 50, 50, 1, 0.5, 0.05, 100}; 
         std::vector<int> v;
         for (int i = 0; i < optionSpec.numSteps; i++) {
             v.push_back(i);
