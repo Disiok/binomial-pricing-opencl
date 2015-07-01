@@ -27,15 +27,15 @@ print "Pu: ", Pu
 print "Pd: ", Pd
 
 # Option values
-V = [0] * n
+V = [0] * (n + 1)
 
 # --------------------------Iterative calculation------------------------------
-for i in range(n):
-    Se = S0 * u ** (2 * i  - n)
+for i in range(n + 1):
+    Se = S0 * u ** i * d ** (n - i)
     V[i] = max(0, optionType * (Se - X)) 
 
 for j in range(n - 1, -1, -1):
-    for i in range(j):
+    for i in range(j + 1):
         V[i] = (Pd * V[i] + Pu * V[i + 1]) / disc
 
 print V[0]
