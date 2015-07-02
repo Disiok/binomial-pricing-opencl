@@ -1,5 +1,6 @@
 __kernel void
 init(
+     cont int type,
      const float stockPrice,
      const float strikePrice,
      const float yearsToMaturity,
@@ -11,11 +12,16 @@ init(
      )
 {
     size_t id = get_global_id(0);
+
+    // -------------------------Derived Parameters-----------------------------
     float deltaT = yearsToMaturity / numSteps;
     float upFactor = exp(volatility * sqrt(deltaT));
-    float stockPriceAtExpiry = stockPrice * pow(upFactor,
-                                                2 * index[id] - numSteps);
-    valueAtExpiry[id] = max(strikePrice - stockPriceAtExpiry, 0.0f); 
+    float downFactor = 1.0f / upFactor;
+
+    // ---------------------Calculate option value at expiry-------------------
+    float stockPriceAtExpiry = stockPrice * pow(upFactor, id) *
+                                            pow(downFactor, numSteps - id);
+    valueAtExpiry[id] = max(type * (stockPriceAtExpiry - strikePrice), 0.0f); 
 }
 
 __kernel void
