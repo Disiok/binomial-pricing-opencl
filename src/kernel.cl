@@ -30,9 +30,10 @@ iterate(
     size_t groupId = get_group_id(0);
 
     tempOptionValue[localId] = optionValue[groupId + localId];
+    printf("Group %d, local %d, value %f \n", groupId, localId, optionValue[groupId + localId]);
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    for (int i = 0; i < 512 - 1; i ++) {
+    for (int i = 512 - 2 ; i >= 0; i --) {
         float value = tempOptionValue[localId];
         if (localId <= i) {
             value = (downWeight * tempOptionValue[localId] +
@@ -42,7 +43,8 @@ iterate(
         barrier(CLK_LOCAL_MEM_FENCE);
         tempOptionValue[localId] = value;
     }
-    if (localId = 0) {
+    if (localId == 0) {
         optionValue[groupId] = tempOptionValue[localId];
+        printf("Last iteration with local %d, value %f \n", localId,optionValue[groupId]);
     }
 }

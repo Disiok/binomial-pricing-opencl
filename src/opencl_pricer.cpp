@@ -134,7 +134,6 @@ double OpenCLPricer::price(OptionSpec& optionSpec) {
                             cl::NDRange(optionSpec.numSteps + 1 - i * 512),
                             cl::NDRange(512));
         queue.finish();
-        std::cout << "I am here!" << std::endl;
     }
 
     // Read results
