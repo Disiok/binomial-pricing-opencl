@@ -2,6 +2,8 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <cmath>
+#include <algorithm>
 
 #include "pricer.h"
 #include "option_spec.h"
@@ -82,6 +84,17 @@ OpenCLPricer::OpenCLPricer() {
 }
 
 double OpenCLPricer::price(OptionSpec& optionSpec) {
+    // ------------------------Derived Parameters------------------------------
+    float deltaT = optionSpec.yearsToMaturity / optionSpec.numSteps;
+
+    float upFactor = exp(optionSpec.volatility * sqrt(deltaT));
+    float downFactor = 1.0f / upFactor;
+
+    float discountFactor = exp(optionSpec.riskFreeRate * deltaT);
+
+    float upWeight = (discountFactor - downFactor) / (upFactor - downFactor);
+    float downWeight = 1.0f - upWeight;
+    
     // Create buffers on the devices
     cl::Buffer valueAtExpiryBuffer(*context, 
                            CL_MEM_READ_WRITE,
@@ -90,21 +103,39 @@ double OpenCLPricer::price(OptionSpec& optionSpec) {
     // Create qeueue to push commands for the devices
     cl::CommandQueue queue(*context, *defaultDevice);
     
-    // Run kernel with functor
-    cl::Kernel kernel = cl::Kernel(*program, "init");
+    // Build and run init kernel 
+    cl::Kernel kernel(*program, "init");
     kernel.setArg(0, optionSpec.stockPrice);
     kernel.setArg(1, optionSpec.strikePrice);
-    kernel.setArg(2, optionSpec.yearsToMaturity);
-    kernel.setArg(3, optionSpec.volatility);
-    kernel.setArg(4, optionSpec.riskFreeRate);
-    kernel.setArg(5, optionSpec.numSteps);
-    kernel.setArg(6, optionSpec.type);
+    kernel.setArg(2, optionSpec.numSteps);
+    kernel.setArg(3, optionSpec.type);
+    kernel.setArg(4, deltaT);
+    kernel.setArg(5, upFactor);
+    kernel.setArg(6, downFactor);
     kernel.setArg(7, valueAtExpiryBuffer);
     queue.enqueueNDRangeKernel(kernel, 
                               cl::NullRange, 
                               cl::NDRange(optionSpec.numSteps + 1), 
                               cl::NullRange);
+    
+    // Block until init kernel finishes execution
     queue.finish();
+
+    cl::Kernel iterateKernel(*program, "iterate");
+    iterateKernel.setArg(0, upWeight);
+    iterateKernel.setArg(1, downWeight);
+    iterateKernel.setArg(2, discountFactor);
+    iterateKernel.setArg(3, valueAtExpiryBuffer);
+    iterateKernel.setArg(4, cl::Local(sizeof(float) * 512));
+
+    for (int i = 0; i < (optionSpec.numSteps + 1) / 512; i ++) {
+        queue.enqueueNDRangeKernel(iterateKernel,
+                            cl::NullRange,
+                            cl::NDRange(optionSpec.numSteps + 1 - i * 512),
+                            cl::NDRange(512));
+        queue.finish();
+        std::cout << "I am here!" << std::endl;
+    }
 
     // Read results
     float* values = new float[optionSpec.numSteps + 1];
@@ -119,11 +150,11 @@ double OpenCLPricer::price(OptionSpec& optionSpec) {
                 << std::endl;
 
     for (int i = 0; i < optionSpec.numSteps + 1; i ++) {
-        std::cout   << values[i] << " ";
+        std::cout << values[i] << " ";
     }
-    std::cout   << std::endl;
+    std::cout << std::endl;
 
-    return 0; 
+    return values[0]; 
 }
 
 OpenCLPricer::~OpenCLPricer() {
