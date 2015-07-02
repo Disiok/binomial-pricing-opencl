@@ -1,13 +1,12 @@
 __kernel void
 init(
-     cont int type,
      const float stockPrice,
      const float strikePrice,
      const float yearsToMaturity,
      const float volatility,
      const float riskFreeRate,
      const int numSteps,
-     __constant const int* index,
+     const int type,
      __global float* valueAtExpiry
      )
 {

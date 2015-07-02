@@ -1,6 +1,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 #include "option_spec.h"
 #include "pricer.h"
@@ -26,7 +27,9 @@ double SerialPricer::price(OptionSpec& optionSpec){
         valueAtExpiry[i] = std::max(optionSpec.type * 
                                 (stockPriceAtExpiry - optionSpec.strikePrice),
                                 0.0);
+        std::cout << valueAtExpiry[i] << " ";
     }
+    std::cout << std::endl;
     
     // -----------Iterate backwards to obtain initial option value-------------
     for (int i = optionSpec.numSteps - 1; i >= 0; --i) {

@@ -82,7 +82,48 @@ OpenCLPricer::OpenCLPricer() {
 }
 
 double OpenCLPricer::price(OptionSpec& optionSpec) {
-   return 0; 
+    // Create buffers on the devices
+    cl::Buffer valueAtExpiryBuffer(*context, 
+                           CL_MEM_READ_WRITE,
+                           sizeof(float) * (optionSpec.numSteps + 1));
+
+    // Create qeueue to push commands for the devices
+    cl::CommandQueue queue(*context, *defaultDevice);
+    
+    // Run kernel with functor
+    cl::Kernel kernel = cl::Kernel(*program, "init");
+    kernel.setArg(0, optionSpec.stockPrice);
+    kernel.setArg(1, optionSpec.strikePrice);
+    kernel.setArg(2, optionSpec.yearsToMaturity);
+    kernel.setArg(3, optionSpec.volatility);
+    kernel.setArg(4, optionSpec.riskFreeRate);
+    kernel.setArg(5, optionSpec.numSteps);
+    kernel.setArg(6, optionSpec.type);
+    kernel.setArg(7, valueAtExpiryBuffer);
+    queue.enqueueNDRangeKernel(kernel, 
+                              cl::NullRange, 
+                              cl::NDRange(optionSpec.numSteps + 1), 
+                              cl::NullRange);
+    queue.finish();
+
+    // Read results
+    float* values = new float[optionSpec.numSteps + 1];
+    queue.enqueueReadBuffer(valueAtExpiryBuffer, 
+                            CL_TRUE, 
+                            0, 
+                            sizeof(float) * (optionSpec.numSteps + 1), 
+                            values);
+
+    // Print results
+    std::cout   << "The result is: "
+                << std::endl;
+
+    for (int i = 0; i < optionSpec.numSteps + 1; i ++) {
+        std::cout   << values[i] << " ";
+    }
+    std::cout   << std::endl;
+
+    return 0; 
 }
 
 OpenCLPricer::~OpenCLPricer() {
