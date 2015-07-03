@@ -26,7 +26,6 @@ public:
 private:
     double priceImplSync(OptionSpec& optionSpec);
     double priceImplSolo(OptionSpec& optionSpec);
-    double priceImplReduce(OptionSpec& optionSpec);
 
     std::vector<cl::Platform>* platforms;
     cl::Platform* defaultPlatform;

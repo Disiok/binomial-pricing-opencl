@@ -6,7 +6,7 @@
 int main() {
     std::cout << "[INFO] Starting tester main function." << std::endl;
     // Construct test option specification
-    OptionSpec optionSpec = {1, 100, 100, 1.0, 0.3, 0.02, 5000, false};
+    OptionSpec optionSpec = {1, 100, 100, 1.0, 0.3, 0.02, 1500, false};
     std::cout << optionSpec;
 
     // Price with serial pricer

@@ -51,32 +51,6 @@ iterate(
 }
 
 __kernel void
-reduce(
-        const float upWeight,
-        const float downWeight,
-        const float discountFactor,
-        __global float* optionValueIn,
-        __global float* optionValueOut,
-        __local float* tempOptionValue
-        )
-{
-    size_t id = get_global_id(0);
-
-    for (int i = 0; i < 501; i ++) {
-        tempOptionValue[i] = optionValueIn[id + i];         
-    }
-
-    for (int i = 499 ; i >= 0; i --) {
-        for (int j = 0; j <= i; j++) {
-            tempOptionValue[j] = (downWeight * tempOptionValue[j] +
-                    upWeight * tempOptionValue[j + 1])
-                    / discountFactor;
-        }
-    }
-    optionValueOut[id] = tempOptionValue[0];
-}
-
-__kernel void
 solo(
         const float upWeight,
         const float downWeight,
