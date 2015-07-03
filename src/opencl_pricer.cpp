@@ -117,43 +117,45 @@ double OpenCLPricer::price(OptionSpec& optionSpec) {
                               cl::NullRange, 
                               cl::NDRange(optionSpec.numSteps + 1), 
                               cl::NullRange);
-    
+    std::cout << "[INFO] Executing init kernel with " << optionSpec.numSteps + 1
+            << " work items" << std::endl;
+
     // Block until init kernel finishes execution
     queue.finish();
 
+    // Note(disiok): Here we use work groups of size 501 so that after each
+    // iteration, the number of nodes is reduced by 500
     cl::Kernel iterateKernel(*program, "iterate");
     iterateKernel.setArg(0, upWeight);
     iterateKernel.setArg(1, downWeight);
     iterateKernel.setArg(2, discountFactor);
     iterateKernel.setArg(3, valueAtExpiryBuffer);
-    iterateKernel.setArg(4, cl::Local(sizeof(float) * 512));
+    iterateKernel.setArg(4, cl::Local(sizeof(float) * 501));
 
-    for (int i = 0; i < (optionSpec.numSteps + 1) / 512; i ++) {
+    for (int i = 1; i <= optionSpec.numSteps / 500; i ++) {
+        int numWorkGroups = optionSpec.numSteps + 1 - 500 * i;
+        int groupSize = 501;
+        int numWorkItems = numWorkGroups * groupSize;
+
         queue.enqueueNDRangeKernel(iterateKernel,
                             cl::NullRange,
-                            cl::NDRange(optionSpec.numSteps + 1 - i * 512),
-                            cl::NDRange(512));
+                            cl::NDRange(numWorkItems)),
+                            cl::NDRange(groupSize);
+        std::cout << "[INFO] Executing iterate kernel with " << numWorkGroups
+                << " work groups and " << groupSize << " work items per group"
+                << std::endl; 
+
         queue.finish();
     }
 
     // Read results
-    float* values = new float[optionSpec.numSteps + 1];
+    float* value = new float;
     queue.enqueueReadBuffer(valueAtExpiryBuffer, 
                             CL_TRUE, 
                             0, 
-                            sizeof(float) * (optionSpec.numSteps + 1), 
-                            values);
-
-    // Print results
-    std::cout   << "The result is: "
-                << std::endl;
-
-    for (int i = 0; i < optionSpec.numSteps + 1; i ++) {
-        std::cout << values[i] << " ";
-    }
-    std::cout << std::endl;
-
-    return values[0]; 
+                            sizeof(float), 
+                            value);
+    return *value; 
 }
 
 OpenCLPricer::~OpenCLPricer() {
