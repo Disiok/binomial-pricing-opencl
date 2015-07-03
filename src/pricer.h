@@ -25,7 +25,7 @@ public:
     virtual double price(OptionSpec& optionSpec);
 private:
     double priceImplSync(OptionSpec& optionSpec, int stepSize);
-    double priceImplSolo(OptionSpec& optionSpec);
+    double priceImplGroup(OptionSpec& optionSpec, int stepSize);
 
     std::vector<cl::Platform>* platforms;
     cl::Platform* defaultPlatform;

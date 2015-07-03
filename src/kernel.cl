@@ -53,17 +53,23 @@ iterate(
 }
 
 __kernel void
-solo(
+group(
         const float upWeight,
         const float downWeight,
         const float discountFactor,
         __global float* optionValueIn,
-        __global float* optionValueOut
+        __global float* optionValueOut,
+        const int currentNumLattice,
+        const int stepSize
         )
 {
-    size_t id = get_global_id(0);
+    size_t id = get_global_id(0) * stepSize;
 
-    optionValueOut[id] = (downWeight * optionValueIn[id] + 
-                         upWeight * optionValueIn[id + 1])
-                         / discountFactor;
+    for (int i = 0; i < stepSize; i++) {
+        if (id + i < currentNumLattice) {
+            optionValueOut[id + i] = (downWeight * optionValueIn[id + i] + 
+                                   upWeight * optionValueIn[id + i + 1])
+                                   / discountFactor;
+        }
+    }
 }

@@ -84,11 +84,11 @@ OpenCLPricer::OpenCLPricer() {
 }
 
 double OpenCLPricer::price(OptionSpec& optionSpec) {
-   return priceImplSolo(optionSpec); 
-   // return priceImplSync(optionSpec, 200); 
+   return priceImplGroup(optionSpec, 5); 
+   // return priceImplSync(optionSpec, 500); 
 }
 
-double OpenCLPricer::priceImplSolo(OptionSpec& optionSpec) {
+double OpenCLPricer::priceImplGroup(OptionSpec& optionSpec, int stepSize) {
     // ------------------------Derived Parameters------------------------------
     float deltaT = optionSpec.yearsToMaturity / optionSpec.numSteps;
 
@@ -133,17 +133,24 @@ double OpenCLPricer::priceImplSolo(OptionSpec& optionSpec) {
     queue.finish();
 
     // Note(disiok): After each iteration, the number of nodes is reduced by 1 
+    cl::Kernel iterateKernel(*program, "group");
+    iterateKernel.setArg(0, upWeight);
+    iterateKernel.setArg(1, downWeight);
+    iterateKernel.setArg(2, discountFactor);
     for (int i = 1; i <= optionSpec.numSteps; i ++) {
-        cl::Kernel iterateKernel(*program, "solo");
-        iterateKernel.setArg(0, upWeight);
-        iterateKernel.setArg(1, downWeight);
-        iterateKernel.setArg(2, discountFactor);
+        int numLatticePoints = optionSpec.numSteps + 1 - i;
+        int numWorkItems = ceil((float) numLatticePoints / stepSize);
         iterateKernel.setArg(3, i % 2 == 1 ? valueBufferA : valueBufferB);
         iterateKernel.setArg(4, i % 2 == 1 ? valueBufferB: valueBufferA);
+        iterateKernel.setArg(5, numLatticePoints);
+        iterateKernel.setArg(6, stepSize);
         queue.enqueueNDRangeKernel(iterateKernel,
                             cl::NullRange,
-                            cl::NDRange(optionSpec.numSteps + 1 - i),
+                            cl::NDRange(numWorkItems),
                             cl::NullRange);
+
+        // std::cout << "[INFO] Executing iterate kernel with " << numWorkItems
+        //         << " work items" << std::endl;
         queue.finish();
     }
 
