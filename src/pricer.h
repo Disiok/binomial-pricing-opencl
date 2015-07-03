@@ -24,6 +24,10 @@ public:
     virtual ~OpenCLPricer();
     virtual double price(OptionSpec& optionSpec);
 private:
+    double priceImplSync(OptionSpec& optionSpec);
+    double priceImplSolo(OptionSpec& optionSpec);
+    double priceImplReduce(OptionSpec& optionSpec);
+
     std::vector<cl::Platform>* platforms;
     cl::Platform* defaultPlatform;
     std::vector<cl::Device>* devices;
@@ -32,7 +36,5 @@ private:
     std::string* kernelCode;
     cl::Program::Sources* sources;
     cl::Program* program;
-
-
 };
 #endif
