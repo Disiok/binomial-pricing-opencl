@@ -6,13 +6,16 @@
 int main() {
     std::cout << "[INFO] Starting tester main function." << std::endl;
     // Construct test option specification
-    OptionSpec optionSpec = {1, 100, 100, 1.0, 0.3, 0.02, 1500, false};
+    OptionSpec optionSpec = {1, 100, 100, 1.0, 0.3, 0.02, 4000, false};
     std::cout << optionSpec;
 
     // Price with serial pricer
     OptionPricer* serialPricer = new SerialPricer(); 
     auto start = std::chrono::steady_clock::now();
-    double benchmarkPrice = serialPricer->price(optionSpec);
+    double benchmarkPrice;
+    for (int i = 0; i < 100; i ++){
+        benchmarkPrice = serialPricer->price(optionSpec);
+    }
     auto end = std::chrono::steady_clock::now();
     auto diff = end - start;
     std::cout << "The benchmark value of the option is: " << benchmarkPrice << std::endl;
@@ -22,7 +25,10 @@ int main() {
     // Price with opencl pricer
     OptionPricer* openclPricer = new OpenCLPricer();
     start = std::chrono::steady_clock::now();
-    double openclPrice = openclPricer->price(optionSpec); 
+    double openclPrice;
+    for (int i = 0; i < 100; i ++) {
+        openclPrice = openclPricer->price(optionSpec); 
+    }
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cout << "The opencl value of the option is: " << openclPrice << std::endl; 
