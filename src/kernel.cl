@@ -15,7 +15,7 @@ init(
     float stockPriceAtExpiry = stockPrice * pow(upFactor, id) *
                                             pow(downFactor, numSteps - id);
     valueAtExpiry[id] = max(type * (stockPriceAtExpiry - strikePrice), 0.0f); 
-    printf("[TRACE] valueAtExpiry[%d] = %f\n", id, valueAtExpiry[id]);
+    // printf("[TRACE] valueAtExpiry[%d] = %f\n", id, valueAtExpiry[id]);
 }
 
 __kernel void

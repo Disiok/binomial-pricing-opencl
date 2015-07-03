@@ -27,7 +27,7 @@ double SerialPricer::price(OptionSpec& optionSpec){
         valueAtExpiry[i] = std::max(optionSpec.type * 
                                 (stockPriceAtExpiry - optionSpec.strikePrice),
                                 0.0);
-        std::cout << "[TRACE] valueAtExpiry[" << i << "] = " << valueAtExpiry[i] << std::endl;
+        // std::cout << "[TRACE] valueAtExpiry[" << i << "] = " << valueAtExpiry[i] << std::endl;
     }
     
     // -----------Iterate backwards to obtain initial option value-------------

@@ -84,8 +84,8 @@ OpenCLPricer::OpenCLPricer() {
 }
 
 double OpenCLPricer::price(OptionSpec& optionSpec) {
-   // return priceImplSolo(optionSpec); 
-   return priceImplSync(optionSpec, 200); 
+   return priceImplSolo(optionSpec); 
+   // return priceImplSync(optionSpec, 200); 
 }
 
 double OpenCLPricer::priceImplSolo(OptionSpec& optionSpec) {
