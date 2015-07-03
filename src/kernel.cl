@@ -15,6 +15,7 @@ init(
     float stockPriceAtExpiry = stockPrice * pow(upFactor, id) *
                                             pow(downFactor, numSteps - id);
     valueAtExpiry[id] = max(type * (stockPriceAtExpiry - strikePrice), 0.0f); 
+    printf("[TRACE] valueAtExpiry[%d] = %f\n", id, valueAtExpiry[id]);
 }
 
 __kernel void
@@ -28,13 +29,14 @@ iterate(
         )
 {
     size_t localId = get_local_id(0);
+    size_t groupSize = get_local_size(0);
     size_t groupId = get_group_id(0);
+    size_t stepSize = groupSize - 1;
 
     tempOptionValue[localId] = optionValueIn[groupId + localId];
-    // printf("Group %d, local %d, value %f \n", groupId, localId, optionValueIn[groupId + localId]);
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    for (int i = 499 ; i >= 0; i --) {
+    for (int i = stepSize - 1 ; i >= 0; i --) {
         float value = tempOptionValue[localId];
         if (localId <= i) {
             value = (downWeight * tempOptionValue[localId] +
@@ -45,8 +47,8 @@ iterate(
         tempOptionValue[localId] = value;
     }
     if (localId == 0) {
-        optionValueOut[groupId] = tempOptionValue[localId];
-        // printf("Last iteration with local %d, value %f \n", localId,optionValue[groupId]);
+        optionValueOut[groupId] = tempOptionValue[0];
+        // printf("[TRACE] groupId = %d, stepSize = %d, optionValueOut[%d] = %f\n", groupId, stepSize, groupId, optionValueOut[groupId]);
     }
 }
 

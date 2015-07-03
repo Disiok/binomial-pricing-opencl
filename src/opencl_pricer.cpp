@@ -84,7 +84,8 @@ OpenCLPricer::OpenCLPricer() {
 }
 
 double OpenCLPricer::price(OptionSpec& optionSpec) {
-   return priceImplSolo(optionSpec); 
+   // return priceImplSolo(optionSpec); 
+   return priceImplSync(optionSpec, 200); 
 }
 
 double OpenCLPricer::priceImplSolo(OptionSpec& optionSpec) {
@@ -132,19 +133,13 @@ double OpenCLPricer::priceImplSolo(OptionSpec& optionSpec) {
     queue.finish();
 
     // Note(disiok): After each iteration, the number of nodes is reduced by 1 
-    cl::Kernel iterateKernel(*program, "solo");
-    iterateKernel.setArg(0, upWeight);
-    iterateKernel.setArg(1, downWeight);
-    iterateKernel.setArg(2, discountFactor);
-
     for (int i = 1; i <= optionSpec.numSteps; i ++) {
-        if (i % 2 == 1) {
-            iterateKernel.setArg(3, valueBufferA);
-            iterateKernel.setArg(4, valueBufferB);
-        } else {
-            iterateKernel.setArg(3, valueBufferB);
-            iterateKernel.setArg(4, valueBufferA);
-        }
+        cl::Kernel iterateKernel(*program, "solo");
+        iterateKernel.setArg(0, upWeight);
+        iterateKernel.setArg(1, downWeight);
+        iterateKernel.setArg(2, discountFactor);
+        iterateKernel.setArg(3, i % 2 == 1 ? valueBufferA : valueBufferB);
+        iterateKernel.setArg(4, i % 2 == 1 ? valueBufferB: valueBufferA);
         queue.enqueueNDRangeKernel(iterateKernel,
                             cl::NullRange,
                             cl::NDRange(optionSpec.numSteps + 1 - i),
@@ -164,7 +159,13 @@ double OpenCLPricer::priceImplSolo(OptionSpec& optionSpec) {
 }
 
 
-double OpenCLPricer::priceImplSync(OptionSpec& optionSpec) {
+double OpenCLPricer::priceImplSync(OptionSpec& optionSpec, int stepSize) {
+    if (stepSize < 128 || stepSize > 512) {
+        std::cerr << "[Error] Step size not valid. Cannot have less than 128 "
+            << " or more than 512 work items per work group" << std::endl;
+        exit(5);
+    }
+
     // ------------------------Derived Parameters------------------------------
     float deltaT = optionSpec.yearsToMaturity / optionSpec.numSteps;
 
@@ -208,24 +209,21 @@ double OpenCLPricer::priceImplSync(OptionSpec& optionSpec) {
     // Block until init kernel finishes execution
     queue.finish();
 
-    // Note(disiok): Here we use work groups of size 501 so that after each
-    // iteration, the number of nodes is reduced by 500
-    cl::Kernel iterateKernel(*program, "iterate");
-    iterateKernel.setArg(0, upWeight);
-    iterateKernel.setArg(1, downWeight);
-    iterateKernel.setArg(2, discountFactor);
-    iterateKernel.setArg(5, cl::Local(sizeof(float) * 501));
+    // Note(disiok): Here we use work groups of size stepSize + 1 
+    // so that after each iteration, the number of nodes is reduced by stepSize
+    int groupSize = stepSize + 1;
 
-    for (int i = 1; i <= optionSpec.numSteps / 500; i ++) {
-        if (i % 2 == 1) {
-            iterateKernel.setArg(3, valueBufferA);
-            iterateKernel.setArg(4, valueBufferB);
-        } else {
-            iterateKernel.setArg(3, valueBufferB);
-            iterateKernel.setArg(4, valueBufferA);
-        }
-        int numWorkGroups = optionSpec.numSteps + 1 - 500 * i;
-        int groupSize = 501;
+
+    for (int i = 1; i <= optionSpec.numSteps / stepSize; i ++) {
+        cl::Kernel iterateKernel(*program, "iterate");
+        iterateKernel.setArg(0, upWeight);
+        iterateKernel.setArg(1, downWeight);
+        iterateKernel.setArg(2, discountFactor);
+        iterateKernel.setArg(3, i % 2 == 1 ? valueBufferA : valueBufferB);
+        iterateKernel.setArg(4, i % 2 == 1 ? valueBufferB: valueBufferA);
+        iterateKernel.setArg(5, cl::Local(sizeof(float) * (stepSize + 1)));
+
+        int numWorkGroups = optionSpec.numSteps + 1 - stepSize * i;
         int numWorkItems = numWorkGroups * groupSize;
 
         queue.enqueueNDRangeKernel(iterateKernel,
@@ -241,7 +239,7 @@ double OpenCLPricer::priceImplSync(OptionSpec& optionSpec) {
 
     // Read results
     float* value = new float;
-    queue.enqueueReadBuffer((optionSpec.numSteps / 500) % 2 == 1? 
+    queue.enqueueReadBuffer((optionSpec.numSteps / stepSize) % 2 == 1? 
                             valueBufferB : valueBufferA, 
                             CL_TRUE, 
                             0, 

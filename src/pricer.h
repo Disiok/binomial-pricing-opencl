@@ -24,7 +24,7 @@ public:
     virtual ~OpenCLPricer();
     virtual double price(OptionSpec& optionSpec);
 private:
-    double priceImplSync(OptionSpec& optionSpec);
+    double priceImplSync(OptionSpec& optionSpec, int stepSize);
     double priceImplSolo(OptionSpec& optionSpec);
 
     std::vector<cl::Platform>* platforms;
