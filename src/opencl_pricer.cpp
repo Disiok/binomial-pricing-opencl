@@ -220,7 +220,6 @@ double OpenCLPricer::priceImplSync(OptionSpec& optionSpec, int stepSize) {
     // so that after each iteration, the number of nodes is reduced by stepSize
     int groupSize = stepSize + 1;
 
-
     for (int i = 1; i <= optionSpec.numSteps / stepSize; i ++) {
         cl::Kernel iterateKernel(*program, "iterate");
         iterateKernel.setArg(0, upWeight);
