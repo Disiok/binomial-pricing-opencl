@@ -1,8 +1,12 @@
 #ifndef __PRICER_H__
 #define __PRICER_H__
-#include "option_spec.h"
+// System Libraries
 #include <vector>
-#include <OpenCL/cl.hpp>
+
+// OpenCL C++ Binding
+#include "cl.hpp"
+
+#include "option_spec.h"
 
 class OptionPricer {
 public:
@@ -25,7 +29,8 @@ public:
     virtual double price(OptionSpec& optionSpec);
 private:
     double priceImplSync(OptionSpec& optionSpec, int stepSize);
-    double priceImplGroup(OptionSpec& optionSpec, int stepSize);
+    double priceImplGroup(OptionSpec& optionSpec, int groupSize);
+    double priceImplTriangle(OptionSpec& optionSpec, int stepSize);
 
     std::vector<cl::Platform>* platforms;
     cl::Platform* defaultPlatform;
