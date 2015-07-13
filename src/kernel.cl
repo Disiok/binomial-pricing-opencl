@@ -77,7 +77,6 @@ group(
 }
 
 __kernel  
-// __attribute__((reqd_work_group_size(5,1,1))) 
 void upTriangle(
         const float upWeight,
         const float downWeight,
@@ -120,7 +119,6 @@ void upTriangle(
     }
 }
 __kernel  
-// __attribute__((reqd_work_group_size(5,1,1))) 
 void downTriangle(
         const float upWeight,
         const float downWeight,
