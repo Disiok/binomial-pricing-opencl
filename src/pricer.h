@@ -28,7 +28,7 @@ public:
     virtual ~OpenCLPricer();
     virtual double price(OptionSpec& optionSpec);
 private:
-    double priceImplSync(OptionSpec& optionSpec, int stepSize);
+    // double priceImplSync(OptionSpec& optionSpec, int stepSize);
     double priceImplGroup(OptionSpec& optionSpec, int groupSize);
     double priceImplTriangle(OptionSpec& optionSpec, int stepSize);
 

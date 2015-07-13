@@ -88,7 +88,8 @@ OpenCLPricer::OpenCLPricer() {
 }
 
 double OpenCLPricer::price(OptionSpec& optionSpec) {
-   return priceImplGroup(optionSpec, 5); 
+   return priceImplTriangle(optionSpec, 5); 
+   // return priceImplGroup(optionSpec, 5); 
    // return priceImplSync(optionSpec, 500); 
 }
 
@@ -184,11 +185,13 @@ double OpenCLPricer::priceImplGroup(OptionSpec& optionSpec, int groupSize) {
 
 
 double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
-    if (stepSize < 128 || stepSize > 512) {
+    /*
+    if (stepSize < 127 || stepSize >= 512) {
         std::cerr << "[Error] Step size not valid. Cannot have less than 128 "
-            << " or more than 512 work items per work group" << std::endl;
+            << " or more than 513 work items per work group" << std::endl;
         exit(5);
     }
+    */
 
     // ------------------------Derived Parameters------------------------------
     float deltaT = optionSpec.yearsToMaturity / optionSpec.numSteps;
@@ -202,11 +205,11 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
     float downWeight = 1.0f - upWeight;
     
     // Create buffers on the devices
-    cl::Buffer valueBufferA(*context, 
+    cl::Buffer valueBuffer(*context, 
                            CL_MEM_READ_WRITE,
                            sizeof(float) * (optionSpec.numSteps + 1));
 
-    cl::Buffer valueBufferB(*context, 
+    cl::Buffer triangleBuffer(*context, 
                            CL_MEM_READ_WRITE,
                            sizeof(float) * (optionSpec.numSteps + 1));
 
@@ -222,7 +225,7 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
     initKernel.setArg(4, deltaT);
     initKernel.setArg(5, upFactor);
     initKernel.setArg(6, downFactor);
-    initKernel.setArg(7, valueBufferA);
+    initKernel.setArg(7, valueBuffer);
     queue.enqueueNDRangeKernel(initKernel, 
                               cl::NullRange, 
                               cl::NDRange(optionSpec.numSteps + 1), 
@@ -237,33 +240,53 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
     // so that after each iteration, the number of nodes is reduced by stepSize
     int groupSize = stepSize + 1;
 
-    for (int i = 1; i <= optionSpec.numSteps / stepSize; i ++) {
-        cl::Kernel iterateKernel(*program, "iterate");
-        iterateKernel.setArg(0, upWeight);
-        iterateKernel.setArg(1, downWeight);
-        iterateKernel.setArg(2, discountFactor);
-        iterateKernel.setArg(3, i % 2 == 1 ? valueBufferA : valueBufferB);
-        iterateKernel.setArg(4, i % 2 == 1 ? valueBufferB: valueBufferA);
-        iterateKernel.setArg(5, cl::Local(sizeof(float) * (stepSize + 1)));
+    cl::Kernel upKernel(*program, "upTriangle");
+    upKernel.setArg(0, upWeight);
+    upKernel.setArg(1, downWeight);
+    upKernel.setArg(2, discountFactor);
+    upKernel.setArg(3, valueBuffer);
+    upKernel.setArg(4, cl::Local(sizeof(float) * groupSize));
+    upKernel.setArg(5, triangleBuffer);
 
-        int numWorkGroups = optionSpec.numSteps + 1 - stepSize * i;
-        int numWorkItems = numWorkGroups * groupSize;
+    cl::Kernel downKernel(*program, "downTriangle");
+    downKernel.setArg(0, upWeight);
+    downKernel.setArg(1, downWeight);
+    downKernel.setArg(2, discountFactor);
+    downKernel.setArg(3, valueBuffer);
+    downKernel.setArg(4, cl::Local(sizeof(float) * groupSize));
+    downKernel.setArg(5, triangleBuffer);
 
-        queue.enqueueNDRangeKernel(iterateKernel,
+    for (int i = 0; i < optionSpec.numSteps / stepSize; i ++) {
+        int numWorkGroupsUp = optionSpec.numSteps / stepSize - i;
+        int numWorkGroupsDown = numWorkGroupsUp - 1;
+        int numWorkItemsUp = numWorkGroupsUp * groupSize;
+        int numWorkItemsDown = numWorkGroupsDown * groupSize;
+
+        queue.enqueueNDRangeKernel(upKernel,
                             cl::NullRange,
-                            cl::NDRange(numWorkItems)),
+                            cl::NDRange(numWorkItemsUp)),
                             cl::NDRange(groupSize);
-        std::cout << "[INFO] Executing iterate kernel with " << numWorkGroups
+        std::cout << "[INFO] Executing up kernel with " << numWorkGroupsUp
                 << " work groups and " << groupSize << " work items per group"
                 << std::endl; 
 
         queue.finish();
+
+        if (numWorkGroupsDown > 0) {
+            queue.enqueueNDRangeKernel(downKernel,
+                    cl::NullRange,
+                    cl::NDRange(numWorkItemsDown)),
+                    cl::NDRange(groupSize);
+            std::cout << "[INFO] Executing down kernel with " << numWorkGroupsDown
+                << " work groups and " << groupSize << " work items per group"
+                << std::endl; 
+            queue.finish();
+        }
     }
 
     // Read results
     float* value = new float;
-    queue.enqueueReadBuffer((optionSpec.numSteps / stepSize) % 2 == 1? 
-                            valueBufferB : valueBufferA, 
+    queue.enqueueReadBuffer(valueBuffer, 
                             CL_TRUE, 
                             0, 
                             sizeof(float), 
@@ -271,6 +294,7 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
     return *value; 
 }
 
+/*
 double OpenCLPricer::priceImplSync(OptionSpec& optionSpec, int stepSize) {
     if (stepSize < 128 || stepSize > 512) {
         std::cerr << "[Error] Step size not valid. Cannot have less than 128 "
@@ -358,6 +382,7 @@ double OpenCLPricer::priceImplSync(OptionSpec& optionSpec, int stepSize) {
                             value);
     return *value; 
 }
+*/
 
 // -------------------------Destructor-----------------------------------------
 OpenCLPricer::~OpenCLPricer() {
