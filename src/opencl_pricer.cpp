@@ -254,7 +254,6 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
     downKernel.setArg(3, valueBuffer);
     downKernel.setArg(4, cl::Local(sizeof(float) * groupSize));
     downKernel.setArg(5, triangleBuffer);
-
     for (int i = 0; i < optionSpec.numSteps / stepSize; i ++) {
         int numWorkGroupsUp = optionSpec.numSteps / stepSize - i;
         int numWorkGroupsDown = numWorkGroupsUp - 1;
@@ -269,7 +268,7 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
                 << " work groups and " << groupSize << " work items per group"
                 << std::endl; 
 
-        queue.finish();
+        queue.enqueueBarrierWithWaitList();
 
         if (numWorkGroupsDown > 0) {
             queue.enqueueNDRangeKernel(downKernel,
@@ -279,7 +278,7 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
             std::cout << "[INFO] Executing down kernel with " << numWorkGroupsDown
                 << " work groups and " << groupSize << " work items per group"
                 << std::endl; 
-            queue.finish();
+            queue.enqueueBarrierWithWaitList();
         }
     }
 

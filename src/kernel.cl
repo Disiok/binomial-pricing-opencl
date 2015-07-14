@@ -15,7 +15,7 @@ init(
     float stockPriceAtExpiry = stockPrice * pow(upFactor, id) *
                                             pow(downFactor, numSteps - id);
     valueAtExpiry[id] = max(type * (stockPriceAtExpiry - strikePrice), 0.0f); 
-    // printf("[TRACE] valueAtExpiry[%d] = %f\n", id, valueAtExpiry[id]);
+    // printf("[init] valueAtExpiry[%d] = %f\n", id, valueAtExpiry[id]);
 }
 
 __kernel void
@@ -57,6 +57,11 @@ void upTriangle(
     int offset = stepSize * groupId;
     int globalId = offset + localId;
 
+    // Debug output of information
+    if (localId == 0) {
+        // printf("[upTriangle] groupId = %d, stepSize = %d\n", groupId, stepSize);
+    }
+
     tempOptionValue[localId] = optionValue[globalId];
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -74,6 +79,9 @@ void upTriangle(
 
         if (localId == 0) {
             triangle[offset + i] = value; 
+            if (groupId == 0) {
+                optionValue[globalId] = value;
+            }
         } else if (localId == stepSize - i) {
            optionValue[globalId] = value;
         }
@@ -96,6 +104,10 @@ void downTriangle(
     int stepSize = groupSize - 1;
     int offset = stepSize * groupId;
     int globalId = offset + localId;
+
+    if (localId == 0) {
+        // printf("[downTriangle] groupId = %d, stepSize = %d\n", groupId, stepSize);
+    }
 
     for (int i = 1 ; i <= stepSize - 1; i ++) {
         float value;
@@ -124,7 +136,11 @@ void downTriangle(
             tempOptionValue[localId] = value;
         }
     }
-    if (localId >= 0 && localId < stepSize) {
+    if (localId > 0 && localId < stepSize) {
         optionValue[globalId] = tempOptionValue[localId]; 
     }
+    if (localId == stepSize) {
+        optionValue[globalId] = triangle[globalId + stepSize]; 
+    }
+
 }
