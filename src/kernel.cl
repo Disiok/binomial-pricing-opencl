@@ -34,8 +34,8 @@ group(
 
     for (int i = startIndex; i < endIndex; i++) {
         optionValueOut[i] = (downWeight * optionValueIn[i] + 
-                               upWeight * optionValueIn[i + 1])
-                               / discountFactor;
+                            upWeight * optionValueIn[i + 1])
+                            / discountFactor;
     }
 }
 
@@ -49,35 +49,33 @@ void upTriangle(
         __global float* triangle
         )
 {
-    size_t localId = get_local_id(0);
-    size_t groupSize = get_local_size(0);
-    size_t groupId = get_group_id(0);
-    size_t stepSize = groupSize - 1;
+    int localId = get_local_id(0);
+    int groupSize = get_local_size(0);
+    int groupId = get_group_id(0);
 
-    tempOptionValue[localId] = optionValue[stepSize * groupId + localId];
+    int stepSize = groupSize - 1;
+    int offset = stepSize * groupId;
+    int globalId = offset + localId;
+
+    tempOptionValue[localId] = optionValue[globalId];
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    for (int i = stepSize - 1 ; i >= 0; i --) {
+    for (int i = 1 ; i <= stepSize; i ++) {
         float value;
-        if (localId <= i) {
+        if (localId <= stepSize - i) {
             value = (downWeight * tempOptionValue[localId] +
                     upWeight * tempOptionValue[localId + 1])
                     / discountFactor;
         } 
         barrier(CLK_LOCAL_MEM_FENCE);
-        if (localId <= i) {
+        if (localId <= stepSize - i) {
             tempOptionValue[localId] = value;
         }
-        // Decide whether to update vertex value: "&&localId != 0"
-        if (localId == i) {
-           optionValue[groupId * stepSize + localId] = value;
-           // printf("Updating optionValue[%d] with value = %f\n", 
-           //         groupId * stepSize + localId, value);
-        }
+
         if (localId == 0) {
-            triangle[groupId * stepSize + stepSize - i] = value; 
-            // printf("Updating triange[%d] with value from localId = %d, i = %d, groupId = %d\n", 
-            //         stepSize - i, localId, i, groupId);
+            triangle[offset + i] = value; 
+        } else if (localId == stepSize - i) {
+           optionValue[globalId] = value;
         }
     }
 }
@@ -91,44 +89,42 @@ void downTriangle(
         __global float* triangle
         )
 {
-    size_t localId = get_local_id(0);
-    size_t groupSize = get_local_size(0);
-    size_t groupId = get_group_id(0);
-    size_t stepSize = groupSize - 1;
+    int localId = get_local_id(0);
+    int groupSize = get_local_size(0);
+    int groupId = get_group_id(0);
 
-    for (int i = stepSize - 1 ; i >= 1; i --) {
+    int stepSize = groupSize - 1;
+    int offset = stepSize * groupId;
+    int globalId = offset + localId;
+
+    for (int i = 1 ; i <= stepSize - 1; i ++) {
         float value;
         float upValue;
         float downValue;
 
         if (localId == stepSize - 1) {
-            upValue = triangle[groupId * groupSize + stepSize - i];
-            // printf("Updating with triangle[%d],", stepSize - i);
+            upValue = triangle[offset + stepSize + i];
         } else {
             upValue = tempOptionValue[localId + 1];
-            // printf("Updating with temp[%d],", localId + 1);
         }
 
         if (localId == stepSize - i) {
-            downValue = optionValue[stepSize * groupId + localId];
-            // printf("optionValue[%d], ", localId);
+            downValue = optionValue[globalId];
         } else {
             downValue = tempOptionValue[localId];
-            // printf("temp[%d], ", localId);
         }
 
-        if (localId >= i && localId != stepSize) {
+        if (localId >= stepSize - i && localId < stepSize) {
             value = (downWeight * downValue+
                     upWeight * upValue)
                     / discountFactor;
-            // printf("to temp[%d]\n", localId);
         } 
         barrier(CLK_LOCAL_MEM_FENCE);
-        if (localId >= i && localId != stepSize) {
+        if (localId >= stepSize - i && localId < stepSize) {
             tempOptionValue[localId] = value;
         }
     }
-    if (localId != 0 && localId != stepSize) {
-        optionValue[groupId * stepSize + localId] = tempOptionValue[localId]; 
+    if (localId >= 0 && localId < stepSize) {
+        optionValue[globalId] = tempOptionValue[localId]; 
     }
 }
