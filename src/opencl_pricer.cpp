@@ -143,8 +143,8 @@ double OpenCLPricer::priceImplGroup(OptionSpec& optionSpec, int groupSize) {
                               cl::NullRange, 
                               cl::NDRange(optionSpec.numSteps + 1), 
                               cl::NullRange);
-    std::cout << "[INFO] Executing init kernel with " << optionSpec.numSteps + 1
-            << " work items" << std::endl;
+    // std::cout << "[INFO] Executing init kernel with " << optionSpec.numSteps + 1
+    //        << " work items" << std::endl;
 
     // Block until init kernel finishes execution
     queue.enqueueBarrierWithWaitList();
@@ -185,8 +185,9 @@ double OpenCLPricer::priceImplGroup(OptionSpec& optionSpec, int groupSize) {
 
 double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
     if (stepSize >= 512) {
-        std::cerr << "[Error] Step size not valid. Cannot have less than 128 "
-            << " or more than 512 work items per work group" << std::endl;
+        std::cerr << "[Error] Step size not valid."
+            << "Cannot have more than 512 work items per work group" 
+            << std::endl;
         exit(5);
     }
 
@@ -227,8 +228,8 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
                               cl::NullRange, 
                               cl::NDRange(optionSpec.numSteps + 1), 
                               cl::NullRange);
-    std::cout << "[INFO] Executing init kernel with " << optionSpec.numSteps + 1
-            << " work items" << std::endl;
+    // std::cout << "[INFO] Executing init kernel with " << optionSpec.numSteps + 1
+    //         << " work items" << std::endl;
 
     // Block until init kernel finishes execution
     queue.enqueueBarrierWithWaitList();
@@ -262,9 +263,9 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
                             cl::NullRange,
                             cl::NDRange(numWorkItemsUp)),
                             cl::NDRange(groupSize);
-        std::cout << "[INFO] Executing up kernel with " << numWorkGroupsUp
-                << " work groups and " << groupSize << " work items per group"
-                << std::endl; 
+        // std::cout << "[INFO] Executing up kernel with " << numWorkGroupsUp
+        //         << " work groups and " << groupSize << " work items per group"
+        //         << std::endl; 
 
         queue.enqueueBarrierWithWaitList();
 
@@ -273,9 +274,9 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
                     cl::NullRange,
                     cl::NDRange(numWorkItemsDown)),
                     cl::NDRange(groupSize);
-            std::cout << "[INFO] Executing down kernel with " << numWorkGroupsDown
-                << " work groups and " << groupSize << " work items per group"
-                << std::endl; 
+            // std::cout << "[INFO] Executing down kernel with " << numWorkGroupsDown
+            //     << " work groups and " << groupSize << " work items per group"
+            //     << std::endl; 
             queue.enqueueBarrierWithWaitList();
         }
     }
