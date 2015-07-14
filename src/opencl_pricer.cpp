@@ -88,9 +88,8 @@ OpenCLPricer::OpenCLPricer() {
 }
 
 double OpenCLPricer::price(OptionSpec& optionSpec) {
-   return priceImplTriangle(optionSpec, 5); 
-   // return priceImplGroup(optionSpec, 5); 
-   // return priceImplSync(optionSpec, 500); 
+   // return priceImplTriangle(optionSpec, 500); 
+   return priceImplGroup(optionSpec, 5); 
 }
 
 /**
@@ -169,7 +168,7 @@ double OpenCLPricer::priceImplGroup(OptionSpec& optionSpec, int groupSize) {
 
         // std::cout << "[INFO] Executing group kernel with " << numWorkItems
         //         << " work items" << std::endl;
-        queue.finish();
+        queue.enqueueBarrierWithWaitList();
     }
 
     // Read results
@@ -293,96 +292,6 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
                             value);
     return *value; 
 }
-
-/*
-double OpenCLPricer::priceImplSync(OptionSpec& optionSpec, int stepSize) {
-    if (stepSize < 128 || stepSize > 512) {
-        std::cerr << "[Error] Step size not valid. Cannot have less than 128 "
-            << " or more than 512 work items per work group" << std::endl;
-        exit(5);
-    }
-
-    // ------------------------Derived Parameters------------------------------
-    float deltaT = optionSpec.yearsToMaturity / optionSpec.numSteps;
-
-    float upFactor = exp(optionSpec.volatility * sqrt(deltaT));
-    float downFactor = 1.0f / upFactor;
-
-    float discountFactor = exp(optionSpec.riskFreeRate * deltaT);
-
-    float upWeight = (discountFactor - downFactor) / (upFactor - downFactor);
-    float downWeight = 1.0f - upWeight;
-    
-    // Create buffers on the devices
-    cl::Buffer valueBufferA(*context, 
-                           CL_MEM_READ_WRITE,
-                           sizeof(float) * (optionSpec.numSteps + 1));
-
-    cl::Buffer valueBufferB(*context, 
-                           CL_MEM_READ_WRITE,
-                           sizeof(float) * (optionSpec.numSteps + 1));
-
-    // Create qeueue to push commands for the devices
-    cl::CommandQueue queue(*context, *defaultDevice);
-    
-    // Build and run init kernel 
-    cl::Kernel kernel(*program, "init");
-    kernel.setArg(0, optionSpec.stockPrice);
-    kernel.setArg(1, optionSpec.strikePrice);
-    kernel.setArg(2, optionSpec.numSteps);
-    kernel.setArg(3, optionSpec.type);
-    kernel.setArg(4, deltaT);
-    kernel.setArg(5, upFactor);
-    kernel.setArg(6, downFactor);
-    kernel.setArg(7, valueBufferA);
-    queue.enqueueNDRangeKernel(kernel, 
-                              cl::NullRange, 
-                              cl::NDRange(optionSpec.numSteps + 1), 
-                              cl::NullRange);
-    std::cout << "[INFO] Executing init kernel with " << optionSpec.numSteps + 1
-            << " work items" << std::endl;
-
-    // Block until init kernel finishes execution
-    queue.finish();
-
-    // Note(disiok): Here we use work groups of size stepSize + 1 
-    // so that after each iteration, the number of nodes is reduced by stepSize
-    int groupSize = stepSize + 1;
-
-    for (int i = 1; i <= optionSpec.numSteps / stepSize; i ++) {
-        cl::Kernel iterateKernel(*program, "iterate");
-        iterateKernel.setArg(0, upWeight);
-        iterateKernel.setArg(1, downWeight);
-        iterateKernel.setArg(2, discountFactor);
-        iterateKernel.setArg(3, i % 2 == 1 ? valueBufferA : valueBufferB);
-        iterateKernel.setArg(4, i % 2 == 1 ? valueBufferB: valueBufferA);
-        iterateKernel.setArg(5, cl::Local(sizeof(float) * (stepSize + 1)));
-
-        int numWorkGroups = optionSpec.numSteps + 1 - stepSize * i;
-        int numWorkItems = numWorkGroups * groupSize;
-
-        queue.enqueueNDRangeKernel(iterateKernel,
-                            cl::NullRange,
-                            cl::NDRange(numWorkItems)),
-                            cl::NDRange(groupSize);
-        std::cout << "[INFO] Executing iterate kernel with " << numWorkGroups
-                << " work groups and " << groupSize << " work items per group"
-                << std::endl; 
-
-        queue.finish();
-    }
-
-    // Read results
-    float* value = new float;
-    queue.enqueueReadBuffer((optionSpec.numSteps / stepSize) % 2 == 1? 
-                            valueBufferB : valueBufferA, 
-                            CL_TRUE, 
-                            0, 
-                            sizeof(float), 
-                            value);
-    return *value; 
-}
-*/
 
 // -------------------------Destructor-----------------------------------------
 OpenCLPricer::~OpenCLPricer() {
