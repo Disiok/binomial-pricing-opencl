@@ -88,8 +88,8 @@ OpenCLPricer::OpenCLPricer() {
 }
 
 double OpenCLPricer::price(OptionSpec& optionSpec) {
-   // return priceImplTriangle(optionSpec, 500); 
-   return priceImplGroup(optionSpec, 5); 
+   return priceImplTriangle(optionSpec, 500); 
+   // return priceImplGroup(optionSpec, 5); 
 }
 
 /**
@@ -147,7 +147,7 @@ double OpenCLPricer::priceImplGroup(OptionSpec& optionSpec, int groupSize) {
             << " work items" << std::endl;
 
     // Block until init kernel finishes execution
-    queue.finish();
+    queue.enqueueBarrierWithWaitList();
 
     // Build and run group kernel 
     cl::Kernel groupKernel(*program, "group");
@@ -184,13 +184,11 @@ double OpenCLPricer::priceImplGroup(OptionSpec& optionSpec, int groupSize) {
 
 
 double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
-    /*
-    if (stepSize < 127 || stepSize >= 512) {
+    if (stepSize >= 512) {
         std::cerr << "[Error] Step size not valid. Cannot have less than 128 "
-            << " or more than 513 work items per work group" << std::endl;
+            << " or more than 512 work items per work group" << std::endl;
         exit(5);
     }
-    */
 
     // ------------------------Derived Parameters------------------------------
     float deltaT = optionSpec.yearsToMaturity / optionSpec.numSteps;
@@ -233,7 +231,7 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
             << " work items" << std::endl;
 
     // Block until init kernel finishes execution
-    queue.finish();
+    queue.enqueueBarrierWithWaitList();
 
     // Note(disiok): Here we use work groups of size stepSize + 1 
     // so that after each iteration, the number of nodes is reduced by stepSize
@@ -294,5 +292,10 @@ double OpenCLPricer::priceImplTriangle(OptionSpec& optionSpec, int stepSize) {
 
 // -------------------------Destructor-----------------------------------------
 OpenCLPricer::~OpenCLPricer() {
-
+    delete platforms;
+    delete devices;
+    delete context;
+    delete kernelCode;
+    delete sources;
+    delete program;
 }
