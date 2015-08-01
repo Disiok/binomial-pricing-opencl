@@ -88,8 +88,9 @@ OpenCLPricer::OpenCLPricer() {
 }
 
 double OpenCLPricer::price(OptionSpec& optionSpec) {
-   return priceImplTriangle(optionSpec, 500); 
-   // return priceImplGroup(optionSpec, 5); 
+    // NOTE(disiok): Default to improved triangle algorithm
+    return priceImplTriangle(optionSpec, 500); 
+    // return priceImplGroup(optionSpec, 5); 
 }
 
 /**
