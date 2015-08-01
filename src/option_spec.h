@@ -14,6 +14,7 @@ struct OptionSpec {
     float volatility;
     float riskFreeRate;
     int numSteps;   
+    //TODO(disiok): Implement for OpenCL pricers
     bool isAmerican;
 };
 std::ostream& operator<<(std::ostream& out, const OptionSpec& other);

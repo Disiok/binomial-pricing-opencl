@@ -62,27 +62,38 @@ void upTriangle(
         // printf("[upTriangle] groupId = %d, stepSize = %d\n", groupId, stepSize);
     }
 
+    // Copy initial lattice points into temporary buffer
     tempOptionValue[localId] = optionValue[globalId];
-    barrier(CLK_LOCAL_MEM_FENCE);
 
     for (int i = 1 ; i <= stepSize; i ++) {
-        float value;
+        // Synchronize at every time-step
         barrier(CLK_LOCAL_MEM_FENCE);
+
+        // Calculate preceding option value if lattice point exists
+        float value;
         if (localId <= stepSize - i) {
             value = (downWeight * tempOptionValue[localId] +
                     upWeight * tempOptionValue[localId + 1])
                     / discountFactor;
         } 
+        
+        // Store preceding option value if lattice point exists
         if (localId <= stepSize - i) {
             tempOptionValue[localId] = value;
         }
 
         if (localId == 0) {
+            // Store boundary node value into secondary global buffer
             triangle[offset + i] = value; 
+            
+            // Only store first node of first group back into global buffer
+            // First nodes of rest of the groups handled by downTriangle
             if (groupId == 0) {
                 optionValue[globalId] = value;
             }
-        } else if (localId == stepSize - i) {
+        } 
+        // Store boundary node value back into global buffer
+        else if (localId == stepSize - i) {
            optionValue[globalId] = value;
         }
     }
@@ -110,11 +121,15 @@ void downTriangle(
     }
 
     for (int i = 1 ; i <= stepSize - 1; i ++) {
+        // Synchronize at every time-step
+        barrier(CLK_LOCAL_MEM_FENCE);
+
         float value;
         float upValue;
         float downValue;
 
-        barrier(CLK_LOCAL_MEM_FENCE);
+        // Calculate preceding option value with lattice points from different
+        // sources depending on index and time-step
         if (localId == stepSize - 1) {
             upValue = triangle[offset + stepSize + i];
         } else {
@@ -136,9 +151,13 @@ void downTriangle(
             tempOptionValue[localId] = value;
         }
     }
+    
+    // Store missing option values back to original global buffer
     if (localId > 0 && localId < stepSize) {
         optionValue[globalId] = tempOptionValue[localId]; 
     }
+
+    // Store first node of each group back to original global buffer
     if (localId == stepSize) {
         optionValue[globalId] = triangle[globalId + stepSize]; 
     }

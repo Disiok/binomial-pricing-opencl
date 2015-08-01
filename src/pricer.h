@@ -22,6 +22,7 @@ public:
     virtual double price(OptionSpec& optionSpec);
 };
 
+//TODO(disiok): Implement American opions
 class OpenCLPricer: public LatticePricer {
 public:
     OpenCLPricer();
