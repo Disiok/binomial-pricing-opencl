@@ -67,12 +67,12 @@ void upTriangle(
 
     for (int i = 1 ; i <= stepSize; i ++) {
         float value;
+        barrier(CLK_LOCAL_MEM_FENCE);
         if (localId <= stepSize - i) {
             value = (downWeight * tempOptionValue[localId] +
                     upWeight * tempOptionValue[localId + 1])
                     / discountFactor;
         } 
-        barrier(CLK_LOCAL_MEM_FENCE);
         if (localId <= stepSize - i) {
             tempOptionValue[localId] = value;
         }
@@ -114,6 +114,7 @@ void downTriangle(
         float upValue;
         float downValue;
 
+        barrier(CLK_LOCAL_MEM_FENCE);
         if (localId == stepSize - 1) {
             upValue = triangle[offset + stepSize + i];
         } else {
@@ -131,7 +132,6 @@ void downTriangle(
                     upWeight * upValue)
                     / discountFactor;
         } 
-        barrier(CLK_LOCAL_MEM_FENCE);
         if (localId >= stepSize - i && localId < stepSize) {
             tempOptionValue[localId] = value;
         }
